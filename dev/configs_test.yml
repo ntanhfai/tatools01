@@ -1,0 +1,33 @@
+test:
+  thamso1: thamso1
+  thamso2: ' xâu tiếng việt'
+  api_url: https://200.168.90.38:6699/avi/collect_data
+  testpath: D:/test_debug_fii
+  test_real: 0.8
+  test_int: 12
+  test_dict:
+    1: 2
+    3: 4.5
+    '6': bảy nhá
+    -1: Tám
+    9:
+    - 10
+    - 11.2
+    - '22'
+    -
+      - 33
+      - 44
+      - '55'
+    10:
+      101: 12
+      102: mười ba
+  test_list:
+  - 1
+  - 2
+  - 3
+  - 4
+  - 5
+  - 6
+  - 7
+  - 8
+  - 9

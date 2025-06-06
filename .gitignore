@@ -1,0 +1,9 @@
+.pypirc
+run_build_n_publish.bat
+build
+.vscode
+taLocalOnly.txt
+tatools01\__pycache__
+tatools01.egg-info
+tatools01.egg-info
+tatools01.egg-info
