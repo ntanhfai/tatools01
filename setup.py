@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="tatools01",  # tên của gói thư viện
-    version="1.0.2", 
+    version="1.0.3", 
     description="Thư viện hữu ích của Tuấn Anh.",
     url="https://pypi.org/project/tatools01/",
     author="Tuấn Anh - Foxconn",
