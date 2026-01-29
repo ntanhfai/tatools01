@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="tatools01",  # tên của gói thư viện
-    version="1.0.3", 
+    version="3.0.7", 
     description="Thư viện hữu ích của Tuấn Anh.",
     url="https://pypi.org/project/tatools01/",
     author="Tuấn Anh - Foxconn",
@@ -16,20 +16,23 @@ setup(
     packages=find_packages(),
     install_requires=[
         "ruamel.yaml", 
-    ],  # ultralytics 8.2.84 requires numpy<2.0.0,>=1.23.0  pip install numpy==1.26.4
+        "python-docx", "markdown", "beautifulsoup4",
+    ],  
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
-    package_data={"tatools01": [ "Thoi_gian/*",  ]},
+    package_data={"tatools01": [ "Thoi_gian/*", "md_word/*", ]},
     # package_dir={"": "ntanh"},
     # packages=find_packages(where="ntanh"),
     Homepage="https://github.com/ntanhfai/tact",
     Issues="https://github.com/ntanhfai/tact/issues",
     entry_points={
         "console_scripts": [
-            "tact=tatools01:console_main", 
+            "tact=tatools01.cli:console_main",
+            "md2w=tatools01.cli_md2w:main",
         ],
     },
+
 )
