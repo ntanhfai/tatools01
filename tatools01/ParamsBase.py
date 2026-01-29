@@ -439,6 +439,16 @@ if __name__ == "__main__":
     print(f"Minio.secret_key = {mPs3_reload.Minio.secret_key}")
     # print(f"abc = {mPs3_reload.abc}")
     print("✓ OK")
+
+    mPs3.mlog("Test log")
+    mPs3.mlog("Test log", level="error")
+    mPs3.mlog("Test log", level="warning")
+    mPs3.mlog("Test log", level="info")
+    mPs3.mlog("Test log", level="debug")
+    # test mlog nhiều tham số như print
+    mPs3.mlog("Test log", level="info", args=[1, 2, 3], kwargs={"a": 1, "b": 2})
+    mPs3.mlog("Test log", level="info", args=[1, 2, 3], kwargs={"a": 1, "b": 2}, extra={"extra": "extra"})
+    
     
     # # ========== TEST 4: User sửa file YAML ==========
     # print("\n" + "=" * 60)

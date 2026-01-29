@@ -72,6 +72,125 @@ class MyConfig(TactParameters):
 cfg = MyConfig()
 print(cfg.DB.host) # Access via dot notation
 ```
+Các ví dụ khác có thể dùng:
+
+```python
+from tatools01.ParamsBase import TactParameters
+
+AppName = 'My_Project_Name'
+
+# Xóa file cũ để test sạch
+# if exists(f"{AppName}.yml"):
+#     os.remove(f"{AppName}.yml")
+
+# ========== TEST 1: Params_01 với dict thường ==========
+print("=" * 60)
+print("TEST 1: Params_01 - Scalar, List, Dict thường")
+print("=" * 60)
+
+class Params_01(TactParameters):
+    def __init__(self):
+        super().__init__(ModuleName="Module 01", params_dir='./')
+        self.HD = ["Chương trình này nhằm xây dựng tham số"]
+        self.test1 = "123"
+        self.in_var = 1
+        self.myList = [1, 2, 3, 4, 5]
+        self.myDict = {"key1": "value1", "key2": "value2"}
+        self.Multi_types_param = {
+            "int": 42,
+            "float": 3.14,
+            "str": "Hello, World!",
+            "list": [1, 2, 3],
+            "dict": {"key": "value"},
+        }
+        self.load_then_save_to_yaml(file_path=f"{AppName}.yml")
+
+mPs1 = Params_01()
+print(f"test1 = {mPs1.test1}")
+print(f"myDict = {mPs1.myDict}")
+print(f"myDict['key1'] = {mPs1.myDict['key1']}")
+print(f"type(myDict) = {type(mPs1.myDict)}")
+print(f"Multi_types_param = {mPs1.Multi_types_param['list']}")
+assert isinstance(mPs1.myDict, dict), "myDict phải là dict!"
+print("✓ OK")
+
+# Load lại
+print("\n--- Reload Params_01 ---")
+mPs1_reload = Params_01()
+print(f"myDict['key1'] = {mPs1_reload.myDict['key1']}")
+print(f"type(myDict) = {type(mPs1_reload.myDict)}")
+assert isinstance(mPs1_reload.myDict, dict), "myDict phải vẫn là dict sau reload!"
+print("✓ OK")
+
+# ========== TEST 2: Params_02 ==========
+print("\n" + "=" * 60)
+print("TEST 2: Params_02 - Module khác trong cùng file")
+print("=" * 60)
+
+class Params_02(TactParameters):
+    def __init__(self):
+        super().__init__(ModuleName="Module 02", params_dir='./')
+        self.HD = ["Chương trình 02"]
+        self.test1 = "456"
+        self.test2 = "New param"
+        self.in_var = 2
+        self.load_then_save_to_yaml(file_path=f"{AppName}.yml")
+
+mPs2 = Params_02()
+print(f"test1 = {mPs2.test1}")
+print(f"test2 = {mPs2.test2}")
+print("✓ OK")
+
+# ========== TEST 3: Params_03 với nested class ==========
+print("\n" + "=" * 60)
+print("TEST 3: Params_03 - Nested class (access bằng dot)")
+print("=" * 60)
+
+class Params_03(TactParameters):
+    def __init__(self):
+        super().__init__(ModuleName="chatbotAPI", params_dir='./')
+        self.HD = ["Chương trình chatbot"]
+        
+        class clsMinio:
+            IP = "192.168.3.42:9000"
+            access_key = "admin"
+            secret_key = "Proton@2025"
+        
+        self.Minio = clsMinio()
+        self.in_var = 1
+        self.load_then_save_to_yaml(file_path=f"{AppName}.yml")
+
+mPs3 = Params_03()
+print(f"Minio.IP = {mPs3.Minio.IP}")
+print(f"Minio.access_key = {mPs3.Minio.access_key}")
+print(f"Minio.secret_key = {mPs3.Minio.secret_key}")
+print(f"type(Minio) = {type(mPs3.Minio)}")
+print("✓ OK")
+
+# Reload
+print("\n--- Reload Params_03 ---")
+mPs3_reload = Params_03()
+print(f"Minio.IP = {mPs3_reload.Minio.IP}")
+print(f"Minio.access_key = {mPs3_reload.Minio.access_key}")
+print(f"Minio.secret_key = {mPs3_reload.Minio.secret_key}")
+# print(f"abc = {mPs3_reload.abc}")
+print("✓ OK")
+
+# ========== TEST 4: Log ==========
+print("\n" + "=" * 60)
+print("TEST 4: Log")
+print("=" * 60)
+
+mPs3.mlog("Test log")
+mPs3.mlog("Test log", level="error")
+mPs3.mlog("Test log", level="warning")
+mPs3.mlog("Test log", level="info")
+mPs3.mlog("Test log", level="debug")
+# test mlog nhiều tham số như print
+mPs3.mlog("Test log", level="info", args=[1, 2, 3], kwargs={"a": 1, "b": 2})
+mPs3.mlog("Test log", level="info", args=[1, 2, 3], kwargs={"a": 1, "b": 2}, extra={"extra": "extra"})
+
+```
 
 #### **Order of Priority (Merge Logic):**
 
