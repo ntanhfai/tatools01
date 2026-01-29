@@ -1,8 +1,18 @@
 # tatools01
 
-> **Project Version:** 3.0.7
-> **Documentation Version:** 1.0.0
-> **Description:** A utility library for Python focusing on persistent parameter management (YAML), performance profiling, and Markdown-to-Word conversion.
+> **Project Version:** 3.1.0
+> **Documentation Version:** 1.1.0
+> **Description:** A professional-grade utility library for Python focusing on persistent parameter management (YAML), advanced logging, cross-platform LLM path configuration, and Markdown-to-Word conversion.
+
+---
+
+## 🌟 What's New in v3.1.0 (Senior Refactor)
+
+Basic enhancements and structural improvements:
+- **Improved Logging (`mlog`)**: Support for string levels ("error", "warning", "info", "debug", "trace"), multiple arguments, and cleaner directory structures.
+- **`LLMPathManager`**: Seamlessly manage Model storage paths for Hugging Face, Ollama, and LM Studio on both Windows (`setx`) and Ubuntu (`~/.bashrc`).
+- **Standardized API Key Management**: Unified access for Gemini, OpenAI, Anthropic, and DeepSeek with Environment Variable priority.
+- **Robustness**: Fixed critical bugs in log filename generation and improved YAML error handling.
 
 ---
 
@@ -246,7 +256,9 @@ md2w ./my_folder --recursive --autofit content --force
 ### 4. `DotDict` & `mlog`
 
 - **`DotDict`**: A dictionary wrapper that allows attribute-style access (`d.key` instead of `d['key']`).
-- **`mlog`**: A built-in logger in `TactParameters` with support for `DEBUG_MODE` environment variable levels (0: Critical, 1: Info, 2: Debug, 3: Trace).
+- **`mlog`**: A built-in logger in `TactParameters` with support for flexible levels ("error", "info", etc.) and `DEBUG_MODE` environment variable. It handles multiple arguments and even dictionary-style logging.
+- **API Key Management**: Integrated `get_api_key` method that supports multiple providers (Gemini, OpenAI, Anthropic, DeepSeek) with priority: Environment Variables > Local YAML Files.
+- **`LLMPathManager`**: A class to manage model storage paths (HF, Ollama, LM Studio) across Windows (`setx`) and Ubuntu (`.bashrc`) with persistence support.
 
 ---
 

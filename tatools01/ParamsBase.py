@@ -8,7 +8,7 @@ from pprint import pprint as pp
 yaml = YAML()
 yaml.indent(mapping=4, sequence=4, offset=2)
 
-version = "3.0.7"
+version = "3.1.0"
 
 class DotDict:
     """Dict có thể truy cập bằng dot notation: obj.key thay vì obj['key']"""
@@ -61,9 +61,42 @@ class TactParameters:
 
     # ==================== API Keys ====================
     
+    def get_api_key(self, provider: str = "Gemini", file_path: str = None) -> dict:
+        """
+        Lấy API key từ Environment Variable hoặc File YAML.
+        Ưu tiên: Environment Variable > File YAML > Default Path.
+        """
+        env_var_map = {
+            "Gemini": "API_KEY_GEMINI",
+            "OpenAI": "API_KEY_OPENAI",
+            "Anthropic": "API_KEY_ANTHROPIC",
+            "DeepSeek": "API_KEY_DEEPSEEK"
+        }
+        
+        # 1. Thử lấy từ Environment Variable
+        env_key = env_var_map.get(provider)
+        if env_key and os.getenv(env_key):
+            self.mlog(f"Using {provider} API key from Environment Variable", level="info")
+            return {"api_key": os.getenv(env_key)}
+            
+        # 2. Thử lấy từ File YAML
+        default_paths = {
+            "Gemini": "D:/taEnv/API_Keys_Gemini.yml",
+            "OpenAI": "D:/taEnv/API_Keys_OpenAI.yml",
+            "Anthropic": "D:/taEnv/API_Keys_Anthropic.yml"
+        }
+        
+        path = file_path or default_paths.get(provider)
+        if path and exists(path):
+            self.mlog(f"Loading {provider} API key from {path}", level="debug")
+            return self._read_yaml_safe(path)
+            
+        self.mlog(f"Warning: No API key found for {provider}", level="warning")
+        return {}
+
     def get_Gemini_key(self, file_path: str = None) -> dict:
-        file_path = file_path or "D:/taEnv/API_Keys_Gemini.yml"
-        return self._read_yaml_safe(file_path)
+        """Wrapper cho get_api_key('Gemini')"""
+        return self.get_api_key(provider="Gemini", file_path=file_path)
     
     @staticmethod
     def load_api_keys(file_path: str) -> dict:
@@ -72,7 +105,10 @@ class TactParameters:
         try:
             with open(file_path, "r", encoding="utf-8") as f:
                 return yaml.load(f) or {}
-        except Exception:
+        except FileNotFoundError:
+            return {}
+        except Exception as e:
+            print(f"Error loading API keys from {file_path}: {e}")
             return {}
 
     # ==================== Core: Serialize to plain Python types ====================
@@ -242,8 +278,11 @@ class TactParameters:
                 content = yaml.load(f)
                 # Convert ruamel types to plain Python
                 return self._to_plain_dict(content) if content else {}
+        except FileNotFoundError:
+            return {}
         except Exception as e:
-            self.mlog(f"Warning: Cannot read {file_path}: {e}")
+            # Dùng print vì mlog có thể chưa sẵn sàng hoặc gây lặp vô tận nếu lỗi log
+            print(f"Warning: Cannot read YAML {file_path}: {e}")
             return {}
     
     def _write_yaml(self, file_path: str, content: dict) -> None:
@@ -295,48 +334,160 @@ class TactParameters:
     #     with open(log_file, "a", encoding="utf-8") as f:
     #         f.write(log_line + "\n")
     #     print(log_line)
-    def mlog(self, *args, debug_level: int | None = None) -> None:
+    def mlog(self, *args, level: str | int | None = None, **kwargs) -> None:
         """
-        Simple logger with debug level filter
-
-        debug_level:
-            0 = CRITICAL
-            1 = INFO
-            2 = DEBUG
-            3 = TRACE (mapped to DEBUG)
-            None = default (2)
-        """
-        # Default level
-        if debug_level is None:
-            debug_level = 2
-            
-        # import os # Set từ đầu chương trình luôn
-        # os.environ["DEBUG_MODE"] = "3"
+        Logger linh hoạt hỗ trợ level string hoặc int.
         
-         
-        # Early return (O(1))
-        if self.DEBUG_MODE < debug_level:
+        level: 
+            0 hoặc 'critical', 'error' -> CRITICAL
+            1 hoặc 'info'             -> INFO
+            2 hoặc 'debug'            -> DEBUG
+            3 hoặc 'trace'            -> TRACE
+        """
+        # Mapping level string sang int
+        level_map = {
+            'critical': 0, 'error': 0,
+            'warning': 1, 'info': 1,
+            'debug': 2,
+            'trace': 3
+        }
+        
+        # Determine numeric level
+        numeric_level = 2 # Default DEBUG
+        if isinstance(level, int):
+            numeric_level = level
+        elif isinstance(level, str):
+            numeric_level = level_map.get(level.lower(), 2)
+        
+        # Early return check
+        if self.DEBUG_MODE < numeric_level:
             return
 
-        message = " ".join(str(arg) for arg in args)
+        # Xây dựng nội dung log
+        log_parts = [str(arg) for arg in args]
+        
+        # Xử lý trường hợp đặc biệt: user truyền args=[] hoặc kwargs={} như một keyword param (như trong test)
+        if 'args' in kwargs and isinstance(kwargs['args'], (list, tuple)):
+            log_parts.extend([str(a) for a in kwargs.pop('args')])
+        
+        if 'kwargs' in kwargs and isinstance(kwargs['kwargs'], dict):
+            inner_kwargs = kwargs.pop('kwargs')
+            log_parts.append(f"kwargs={inner_kwargs}")
 
+        # Thêm các keyword arguments còn lại nếu có
+        if kwargs:
+            log_parts.append(f"extra={kwargs}")
+
+        message = " ".join(log_parts)
         now = datetime.now()
         timestamp = now.strftime("%m/%d, %H:%M:%S")
 
-        base = self.logdir or "."
-        log_file = f"{base}/logs/{now.year}/{now.month}/{now.day}/logs.log"
+        # Xác định file log
+        log_file = self.getLogfilename()
         os.makedirs(os.path.dirname(log_file), exist_ok=True)
 
-        log_line = f"{timestamp} [{self.ModuleName}] {message}"
+        log_line = f"{timestamp} [{self.ModuleName}] [{str(level or numeric_level).upper()}] {message}"
 
-        with open(log_file, "a", encoding="utf-8") as f:
-            f.write(log_line + "\n")
+        try:
+            with open(log_file, "a", encoding="utf-8") as f:
+                f.write(log_line + "\n")
+        except Exception as e:
+            print(f"Logging Error: {e}")
 
         print(log_line)
-    def getLogfilename(self):
+
+    def getLogfilename(self) -> str:
+        """Trả về đường dẫn file log dựa trên ngày hiện tại."""
+        now = datetime.now()
         base = self.logdir or "."
-        log_file = f"{base}/logs/{now.year}/{now.month}/{now.day}/logs.log"
-        return log_file
+        return join(base, "logs", str(now.year), str(now.month), str(now.day), "logs.log").replace("\\", "/")
+
+class LLMPathManager:
+    """
+    Quản lý các đường dẫn lưu trữ Model LLM qua biến môi trường (Windows & Ubuntu).
+    Hỗ trợ các dịch vụ: Hugging Face, Ollama, LM Studio.
+    """
+    
+    PROVIDERS = {
+        "huggingface": "HF_HOME",
+        "ollama": "OLLAMA_MODELS",
+        "lmstudio": "LMSTUDIO_PATH"
+    }
+
+    @staticmethod
+    def set_path(provider: str, path: str, persistent: bool = True) -> bool:
+        """Thiết lập đường dẫn cho một provider."""
+        import platform
+        import subprocess
+
+        key = LLMPathManager.PROVIDERS.get(provider.lower())
+        if not key:
+            print(f"Unknown provider: {provider}")
+            return False
+            
+        path = os.path.abspath(path).replace("\\", "/")
+        
+        # 1. Update current session
+        os.environ[key] = path
+        
+        # 2. Update persistent storage
+        if persistent:
+            if platform.system() == "Windows":
+                try:
+                    # Dùng setx cho Windows để lưu vĩnh viễn
+                    subprocess.run(["setx", key, path], check=True, capture_output=True)
+                    print(f"[Windows] Set persistent: {key} = {path}")
+                except Exception as e:
+                    print(f"Error setting env on Windows: {e}")
+                    return False
+            else: # Linux/Ubuntu
+                try:
+                    bashrc = os.path.expanduser("~/.bashrc")
+                    export_line = f'export {key}="{path}"'
+                    
+                    content = []
+                    if os.path.exists(bashrc):
+                        with open(bashrc, "r") as f:
+                            content = f.readlines()
+                    
+                    # Xóa các dòng cũ liên quan đến key này
+                    content = [line for line in content if not line.startswith(f"export {key}=")]
+                    content.append(export_line + "\n")
+                    
+                    with open(bashrc, "w") as f:
+                        f.writelines(content)
+                    print(f"[Ubuntu] Added to .bashrc: {export_line}")
+                except Exception as e:
+                    print(f"Error setting env on Ubuntu: {e}")
+                    return False
+        return True
+
+    @staticmethod
+    def get_path(provider: str) -> str:
+        """Lấy giá trị hiện tại của biến môi trường."""
+        key = LLMPathManager.PROVIDERS.get(provider.lower())
+        return os.environ.get(key, "") if key else ""
+
+    @staticmethod
+    def list_all() -> dict:
+        """Liệt kê tất cả các cấu hình LLM hiện có."""
+        return {p: os.environ.get(k, "Not set") for p, k in LLMPathManager.PROVIDERS.items()}
+
+    @staticmethod
+    def delete_path(provider: str) -> bool:
+        """Xóa biến môi trường (chỉ xóa trong session và hướng dẫn xóa persistent)."""
+        import platform
+        key = LLMPathManager.PROVIDERS.get(provider.lower())
+        if not key: return False
+        
+        if key in os.environ:
+            del os.environ[key]
+            
+        if platform.system() == "Windows":
+            print(f"Note: To delete persistent variable on Windows, use Registry Editor or: REG DELETE HKCU\\Environment /V {key} /F")
+        else:
+            print(f"Note: Please manually remove the line 'export {key}=...' from your ~/.bashrc")
+        return True
 
 # ==================== TEST ====================
 
@@ -448,6 +599,19 @@ if __name__ == "__main__":
     # test mlog nhiều tham số như print
     mPs3.mlog("Test log", level="info", args=[1, 2, 3], kwargs={"a": 1, "b": 2})
     mPs3.mlog("Test log", level="info", args=[1, 2, 3], kwargs={"a": 1, "b": 2}, extra={"extra": "extra"})
+    
+    # ========== TEST 5: LLMPathManager ==========
+    print("\n" + "=" * 60)
+    print("TEST 5: LLMPathManager (Environment Variables)")
+    print("=" * 60)
+    
+    from tatools01.ParamsBase import LLMPathManager
+    # Test set (không persistent để tránh làm bẩn máy user trừ khi họ muốn)
+    success = LLMPathManager.set_path("huggingface", "./hf_models", persistent=False)
+    print(f"Set HF path success: {success}")
+    print(f"Current HF Path: {LLMPathManager.get_path('huggingface')}")
+    print(f"All LLM Paths: {LLMPathManager.list_all()}")
+    print("✓ OK")
     
     
     # # ========== TEST 4: User sửa file YAML ==========
